@@ -7,29 +7,27 @@ RAW_MAX = 32768.0
 RAW_MIN = 32767.0
 RESPONSE_LENGTH = 140
 
-MAPPING = {
-    "leftX":           (3, 9),
-    "leftY":           (13, 19),
-    "rightX":          (24, 30),
-    "rightY":          (34, 40),
-    "dpadUp":          (45, 46),
-    "dpadDown":        (50, 51),
-    "dpadLeft":        (55, 56),
-    "dpadRight":       (60, 61),
-    "Back":            (68, 69),
-    "Guide":           (76, 77),
-    "Start":           (84, 85),
-    "leftThumbstick":  (90, 91),
-    "rightThumbstick": (95, 96),
-    "A":               (100, 101),
-    "B":               (104, 105),
-    "X":               (108, 109),
-    "Y":               (112, 113),
-    "leftBumper":      (118, 119),
-    "rightBumper":     (123, 124),
-    "leftTrigger":     (129, 132),
-    "rightTrigger":    (136, 139)
-}
+MAPPING = {"leftX":           (3, 9),
+           "leftY":           (13, 19),
+           "rightX":          (24, 30),
+           "rightY":          (34, 40),
+           "dpadUp":          (45, 46),
+           "dpadDown":        (50, 51),
+           "dpadLeft":        (55, 56),
+           "dpadRight":       (60, 61),
+           "Back":            (68, 69),
+           "Guide":           (76, 77),
+           "Start":           (84, 85),
+           "leftThumbstick":  (90, 91),
+           "rightThumbstick": (95, 96),
+           "A":               (100, 101),
+           "B":               (104, 105),
+           "X":               (108, 109),
+           "Y":               (112, 113),
+           "leftBumper":      (118, 119),
+           "rightBumper":     (123, 124),
+           "leftTrigger":     (129, 132),
+           "rightTrigger":    (136, 139)}
 
 class ctrl:
 
