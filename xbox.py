@@ -57,6 +57,10 @@ class ctrl:
             self.close()
             raise IOError('Unable to detect Xbox controller/receiver - Run python as sudo')
 
+    #######################
+    ### Private Methods ###
+    #######################
+
     def _readable(self):
         readable, writeable, exception = select.select([self.pipe],[],[],0)
         return readable
@@ -80,8 +84,8 @@ class ctrl:
             return (raw + deadzone) / (RAW_MIN - deadzone)
         return (raw - deadzone) / (RAW_MAX - deadzone)
 
-    def _getValue(self, key, refresh=True):
-        if refresh:
+    def _getValue(self, key, r=True):
+        if r:
             self._refresh()
         (start, end) = MAPPING[key]
         return int(self.reading[start:end])
@@ -90,17 +94,17 @@ class ctrl:
     ### Input Functions ###
     #######################
 
-    def leftX(self, deadzone=DEADZONE, refresh=True):
-        return self._axisScale(self._getValue("leftX", refresh=refresh), deadzone)
+    def leftX(self, deadzone=DEADZONE, r=True):
+        return self._axisScale(self._getValue("leftX", r=r), deadzone)
 
-    def leftY(self, deadzone=DEADZONE, refresh=True):
-        return self._axisScale(self._getValue("leftY", refresh=refresh), deadzone)
+    def leftY(self, deadzone=DEADZONE, r=True):
+        return self._axisScale(self._getValue("leftY", r=r), deadzone)
 
-    def rightX(self, deadzone=DEADZONE, refresh=True):
-        return self._axisScale(self._getValue("rightX", refresh=refresh), deadzone)
+    def rightX(self, deadzone=DEADZONE, r=True):
+        return self._axisScale(self._getValue("rightX", r=r), deadzone)
 
-    def rightY(self, deadzone=DEADZONE, refresh=True):
-        return self._axisScale(self._getValue("rightY", refresh=refresh), deadzone)
+    def rightY(self, deadzone=DEADZONE, r=True):
+        return self._axisScale(self._getValue("rightY", r=r), deadzone)
 
     def dpadUp(self): return self._getValue("dpadUp")
         
@@ -137,10 +141,10 @@ class ctrl:
     def rightTrigger(self): return self._getValue("rightTrigger")
 
     def leftStick(self, deadzone=DEADZONE):
-        return (self.leftX(deadzone),self.leftY(deadzone, refresh=False))
+        return (self.leftX(deadzone),self.leftY(deadzone, r=False))
 
     def rightStick(self, deadzone=DEADZONE):
-        return (self.rightX(deadzone),self.rightY(deadzone, refresh=False))
+        return (self.rightX(deadzone),self.rightY(deadzone, r=False))
 
     #########################
     ### Utility Functions ###
