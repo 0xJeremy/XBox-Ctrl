@@ -1,55 +1,45 @@
-""" Xbox 360 controller support for Python
-11/9/13 - Steven Jacobs
-
-This class module supports reading a connected Xbox controller under Python 2 and 3.
-
-You'll need to first install xboxdrv:
-
-    sudo apt-get install xboxdrv
-
-See http://pingus.seul.org/~grumbel/xboxdrv/ for details on xboxdrv
-
-Example usage:
-
-    import xbox
-    joy = xbox.Joystick()         #Initialize joystick
-    
-    if joy.A():                   #Test state of the A button (1=pressed, 0=not pressed)
-        print 'A button pressed'
-    x_axis   = joy.leftX()        #X-axis of the left stick (values -1.0 to 1.0)
-    (x,y)    = joy.leftStick()    #Returns tuple containing left X and Y axes (values -1.0 to 1.0)
-    trigger  = joy.rightTrigger() #Right trigger position (values 0 to 1.0)
-    
-    joy.close()                   #Cleanup before exit
-
-All controller buttons are supported.  See code for all functions.
-"""
-
 import subprocess
 import select
 import time
 
-class Joystick:
+DEADZONE = 4000
 
-    """Initializes the joystick/wireless receiver, launching 'xboxdrv' as a subprocess
-    and checking that the wired joystick or wireless receiver is attached.
-    The refreshRate determines the maximnum rate at which events are polled from xboxdrv.
-    Calling any of the Joystick methods will cause a refresh to occur, if refreshTime has elapsed.
-    Routinely call a Joystick method, at least once per second, to avoid overfilling the event buffer.
- 
-    Usage:
-        joy = xbox.Joystick()
-    """
+MAPPING = {
+    "leftX":           (3, 9),
+    "leftY":           (13, 19),
+    "rightX":          (24, 30),
+    "rightY":          (34, 40),
+    "dpadUp":          (45, 46),
+    "dpadDown":        (50, 51),
+    "dpadLeft":        (55, 56),
+    "dpadRight":       (60, 61),
+    "Back":            (68, 69),
+    "Guide":           (76, 77),
+    "Start":           (84, 85),
+    "leftThumbstick":  (90, 91),
+    "rightThumbstick": (95, 96),
+    "A":               (100, 101),
+    "B":               (104, 105),
+    "X":               (108, 109),
+    "Y":               (112, 113),
+    "leftBumper":      (118, 119),
+    "rightBumper":     (123, 124),
+    "leftTrigger":     (129, 132),
+    "rightTrigger":    (136, 139)
+}
+
+class ctrl:
+
     def __init__(self,refreshRate = 30):
         self.proc = subprocess.Popen(['xboxdrv','--no-uinput','--detach-kernel-driver'], stdout=subprocess.PIPE, bufsize=0)
         self.pipe = self.proc.stdout
-        #
+
         self.connectStatus = False  #will be set to True once controller is detected and stays on
         self.reading = '0' * 140    #initialize stick readings to all zeros
-        #
+
         self.refreshTime = 0    #absolute time when next refresh (read results from xboxdrv stdout pipe) is to occur
         self.refreshDelay = 1.0 / refreshRate   #joystick refresh is to be performed 30 times per sec by default
-        #
+
         # Read responses from 'xboxdrv' for upto 2 seconds, looking for controller/receiver to respond
         found = False
         waitTime = time.time() + 2
@@ -73,10 +63,6 @@ class Joystick:
             self.close()
             raise IOError('Unable to detect Xbox controller/receiver - Run python as sudo')
 
-    """Used by all Joystick methods to read the most recent events from xboxdrv.
-    The refreshRate determines the maximum frequency with which events are checked.
-    If a valid event response is found, then the controller is flagged as 'connected'.
-    """
     def refresh(self):
         # Refresh the joystick readings based on regular defined freq
         if self.refreshTime < time.time():
@@ -98,47 +84,29 @@ class Joystick:
                 else:  #Any other response means we have lost wireless or controller battery
                     self.connectStatus = False
 
-    """Return a status of True, when the controller is actively connected.
-    Either loss of wireless signal or controller powering off will break connection.  The
-    controller inputs will stop updating, so the last readings will remain in effect.  It is
-    good practice to only act upon inputs if the controller is connected.  For instance, for
-    a robot, stop all motors if "not connected()".
-    
-    An inital controller input, stick movement or button press, may be required before the connection
-    status goes True.  If a connection is lost, the connection will resume automatically when the
-    fault is corrected.
-    """
     def connected(self):
         self.refresh()
         return self.connectStatus
 
     # Left stick X axis value scaled between -1.0 (left) and 1.0 (right) with deadzone tolerance correction
-    def leftX(self,deadzone=4000):
-        self.refresh()
-        raw = int(self.reading[3:9])
-        return self.axisScale(raw,deadzone)
+    def leftX(self, deadzone=DEADZONE):
+        return self.axisScale(self._getValue("leftX"), deadzone)
 
     # Left stick Y axis value scaled between -1.0 (down) and 1.0 (up)
-    def leftY(self,deadzone=4000):
-        self.refresh()
-        raw = int(self.reading[13:19])
-        return self.axisScale(raw,deadzone)
+    def leftY(self, deadzone=DEADZONE):
+        return self.axisScale(self._getValue("leftY"), deadzone)
 
     # Right stick X axis value scaled between -1.0 (left) and 1.0 (right)
-    def rightX(self,deadzone=4000):
-        self.refresh()
-        raw = int(self.reading[24:30])
-        return self.axisScale(raw,deadzone)
+    def rightX(self, deadzone=DEADZONE):
+        return self.axisScale(self._getValue("rightX"), deadzone)
 
     # Right stick Y axis value scaled between -1.0 (down) and 1.0 (up)
-    def rightY(self,deadzone=4000):
-        self.refresh()
-        raw = int(self.reading[34:40])
-        return self.axisScale(raw,deadzone)
+    def rightY(self, deadzone=DEADZONE):
+        return self.axisScale(self._getValue("rightY"), deadzone)
 
     # Scale raw (-32768 to +32767) axis with deadzone correcion
     # Deadzone is +/- range of values to consider to be center stick (ie. 0.0)
-    def axisScale(self,raw,deadzone):
+    def axisScale(self, raw, deadzone):
         if abs(raw) < deadzone:
             return 0.0
         else:
@@ -147,102 +115,90 @@ class Joystick:
             else:
                 return (raw - deadzone) / (32767.0 - deadzone)
 
+    def _getValue(self, key):
+        self.refresh()
+        (start, end) = MAPPING[key]
+        return int(self.reading[start:end])
+
     # Dpad Up status - returns 1 (pressed) or 0 (not pressed)
     def dpadUp(self):
-        self.refresh()
-        return int(self.reading[45:46])
+        return self._getValue("dpadUp")
         
     # Dpad Down status - returns 1 (pressed) or 0 (not pressed)
     def dpadDown(self):
-        self.refresh()
-        return int(self.reading[50:51])
+        return self._getValue("dpadDown")
         
     # Dpad Left status - returns 1 (pressed) or 0 (not pressed)
     def dpadLeft(self):
-        self.refresh()
-        return int(self.reading[55:56])
+        return self._getValue("dpadLeft")
         
     # Dpad Right status - returns 1 (pressed) or 0 (not pressed)
     def dpadRight(self):
-        self.refresh()
-        return int(self.reading[60:61])
+        return self._getValue("dpadRight")
         
     # Back button status - returns 1 (pressed) or 0 (not pressed)
     def Back(self):
-        self.refresh()
-        return int(self.reading[68:69])
+        return self._getValue("Back")
 
     # Guide button status - returns 1 (pressed) or 0 (not pressed)
     def Guide(self):
-        self.refresh()
-        return int(self.reading[76:77])
+        return self._getValue("Guide")
 
     # Start button status - returns 1 (pressed) or 0 (not pressed)
     def Start(self):
-        self.refresh()
-        return int(self.reading[84:85])
+        return self._getValue("Start")
 
     # Left Thumbstick button status - returns 1 (pressed) or 0 (not pressed)
     def leftThumbstick(self):
-        self.refresh()
-        return int(self.reading[90:91])
+        return self._getValue("leftThumbstick")
 
     # Right Thumbstick button status - returns 1 (pressed) or 0 (not pressed)
     def rightThumbstick(self):
-        self.refresh()
-        return int(self.reading[95:96])
+        return self._getValue("rightThumbstick")
 
     # A button status - returns 1 (pressed) or 0 (not pressed)
     def A(self):
-        self.refresh()
-        return int(self.reading[100:101])
+        return self._getValue("A")
         
     # B button status - returns 1 (pressed) or 0 (not pressed)
     def B(self):
-        self.refresh()
-        return int(self.reading[104:105])
+        return self._getValue("B")
 
     # X button status - returns 1 (pressed) or 0 (not pressed)
     def X(self):
-        self.refresh()
-        return int(self.reading[108:109])
+        return self._getValue("X")
 
     # Y button status - returns 1 (pressed) or 0 (not pressed)
     def Y(self):
-        self.refresh()
-        return int(self.reading[112:113])
+        return self._getValue("Y")
 
     # Left Bumper button status - returns 1 (pressed) or 0 (not pressed)
     def leftBumper(self):
-        self.refresh()
-        return int(self.reading[118:119])
+        return self._getValue("leftBumper")
 
     # Right Bumper button status - returns 1 (pressed) or 0 (not pressed)
     def rightBumper(self):
-        self.refresh()
-        return int(self.reading[123:124])
+        return self._getValue("rightBumper")
 
     # Left Trigger value scaled between 0.0 to 1.0
     def leftTrigger(self):
-        self.refresh()
-        return int(self.reading[129:132]) / 255.0
+        return self._getValue("leftTrigger")
         
     # Right trigger value scaled between 0.0 to 1.0
     def rightTrigger(self):
-        self.refresh()
-        return int(self.reading[136:139]) / 255.0
+        return self._getValue("rightTrigger")
 
     # Returns tuple containing X and Y axis values for Left stick scaled between -1.0 to 1.0
     # Usage:
     #     x,y = joy.leftStick()
-    def leftStick(self,deadzone=4000):
+    def leftStick(self, deadzone=DEADZONE):
         self.refresh()
         return (self.leftX(deadzone),self.leftY(deadzone))
 
     # Returns tuple containing X and Y axis values for Right stick scaled between -1.0 to 1.0
     # Usage:
     #     x,y = joy.rightStick() 
-    def rightStick(self,deadzone=4000):
+    def rightStick(self, deadzone=DEADZONE):
         self.refresh()
         return (self.rightX(deadzone),self.rightY(deadzone))
 

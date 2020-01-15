@@ -7,6 +7,8 @@ sudo apt-get install xboxdrv
 
 sudo usermod -a -G root "$USER"
 
+# Updates the permissions. Comment out this line if this is not desired behavior.
+
 echo "KERNEL==\"uinput\", MODE=\"0660\", GROUP=\"root\"" > /etc/udev/rules.d/55-permissions-uinput.rules
 
 echo "Done!"
